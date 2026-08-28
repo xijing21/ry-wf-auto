@@ -33,9 +33,9 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.LLM_API_KEY }}" \
             -d "{
-              \"model\": \"AWS-GPT-5.6-Terra\",
+              \"model\": \"DeepSeek-V4-Pro\",
               \"messages\": [{\"role\": \"user\", \"content\": $(echo "$FULL_PROMPT" | jq -R -s .)}],
-              \"temperature\": 0.5,
+              \"temperature\": 0.7,
               \"max_tokens\": 1024
             }")
 
