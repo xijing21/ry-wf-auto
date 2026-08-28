@@ -1,0 +1,62 @@
+name: Generate Summary for Latest Biweekly
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the generator repository
+        uses: actions/checkout@v4
+
+      - name: Clone upstream repository (latest snapshot only)
+        run: |
+          git clone --depth 1 https://github.com/ruyisdk/wechat-articles.git upstream_repo
+          cd upstream_repo
+          LATEST_FILE=$(ls -1 *ruyisdk-biweekly-*.md 2>/dev/null | sort -r | head -1)
+          echo "LATEST_FILE=$LATEST_FILE" >> $GITHUB_ENV
+          echo "找到最新文件: $LATEST_FILE"
+
+      - name: Read content and generate summary
+        id: llm_step
+        run: |
+          FILE_PATH="upstream_repo/${{ env.LATEST_FILE }}"
+          CONTENT=$(sed '/^---$/,/^---$/d' "$FILE_PATH")
+          PROMPT_TEMPLATE=$(cat ai-biweekly-helper/prompts/summary-prompt.md)
+          FULL_PROMPT="${PROMPT_TEMPLATE}
+
+          ${CONTENT}"
+
+          # 调用AI站点的API
+          RESPONSE=$(curl -s -X POST "https://llmapi.isrc.ac.cn/v1/chat/completions" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.LLM_API_KEY }}" \
+            -d "{
+              \"model\": \"AWS-GPT-5.6-Terra\",
+              \"messages\": [{\"role\": \"user\", \"content\": $(echo "$FULL_PROMPT" | jq -R -s .)}],
+              \"temperature\": 0.5,
+              \"max_tokens\": 1024
+            }")
+
+          SUMMARY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content')
+          if [ -z "$SUMMARY" ] || [ "$SUMMARY" == "null" ]; then
+            echo "错误：AI生成失败，请检查API响应"
+            echo "API响应: $RESPONSE"
+            exit 1
+          fi
+
+          echo "$SUMMARY" > summary_output.txt
+
+      - name: Output summary to logs
+        run: |
+          echo "========================================================"
+          echo "📝 生成的卷首语草稿 (请从下方复制)"
+          echo "========================================================"
+          echo ""
+          cat summary_output.txt
+          echo ""
+          echo "========================================================"
+          echo "✅ 请将以上内容复制到你的个人仓库对应文件中。"
+          echo "📌 个人仓库地址: https://github.com/xijing21/wechat-articles"
+          echo "========================================================"
