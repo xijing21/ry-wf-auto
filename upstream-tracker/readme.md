@@ -20,7 +20,7 @@ ry-wf-auto/
 │       ├── llvm-upstream-track.yml        # 预留
 │       └── qemu-upstream-track.yml        # 预留
 │
-└── upstream-track/                      # 新增：上游动态监测任务集
+└── upstream-tracker/                      # 新增：上游动态监测任务集
     ├── README.md                          # 本任务集总说明
     │
     ├── gnu-upstream/                      # GNU Toolchain 上游监测
